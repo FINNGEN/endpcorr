@@ -37,6 +37,8 @@ FILE_EXCL_EXCL =         "n_excl_excl.parq"
 FILE_CORR_PHI =          "corr_phi.parq"
 FILE_CORR_CHISQ =        "corr_chisq.parq"
 FILE_CORR_CASE_RATIO =   "corr_case_ratio.parq"
+FILE_CORR_OVERLAP_AB =   "corr_overlap_ab.parq"
+FILE_CORR_OVERLAP_BA =   "corr_overlap_ba.parq"
 
 
 def main():
@@ -215,7 +217,7 @@ def compute(args):
     n_excl_controls = n_controls_excl.T
 
     # Compute correlation coefficients for all endpoints
-    fphi, fchisq, fcase_ratio = correlations(
+    fphi, fchisq, fcase_ratio, overlap_ab, overlap_ba = correlations(
         n_cases_cases, n_cases_controls, n_cases_excl,
         n_controls_cases, n_controls_controls, n_controls_excl,
         n_excl_cases, n_excl_controls, n_excl_excl
@@ -236,6 +238,8 @@ def compute(args):
         (fphi, FILE_CORR_PHI),
         (fchisq, FILE_CORR_CHISQ),
         (fcase_ratio, FILE_CORR_CASE_RATIO),
+        (overlap_ab, FILE_CORR_OVERLAP_AB),
+        (overlap_ba, FILE_CORR_OVERLAP_BA)
     ]
     for df, output_path in outputs:
         pd.DataFrame(
@@ -269,7 +273,10 @@ def correlations(
 
     case_ratio = n11 / (n10 + n01 + n11 + n21 + n12)
 
-    return phi, chisq, case_ratio
+    overlap_ab = n11 / (n11 + n01 + n21)
+    overlap_ba = n11 / (n11 + n10 + n12)
+
+    return phi, chisq, case_ratio, overlap_ab, overlap_ba
 
 
 def inspect(args):
@@ -292,6 +299,8 @@ def inspect(args):
     phi = args.input_dir / FILE_CORR_PHI
     chisq = args.input_dir / FILE_CORR_CHISQ
     case_ratio = args.input_dir / FILE_CORR_CASE_RATIO
+    overlap_ab = args.input_dir / FILE_CORR_OVERLAP_AB
+    overlap_ba = args.input_dir / FILE_CORR_OVERLAP_BA
 
     table = np.array([
         [lookup(n11), lookup(n10), lookup(n12)],
@@ -303,6 +312,11 @@ def inspect(args):
     print(f"φ: {lookup(phi)}")
     print(f"χ²: {lookup(chisq)}")
     print(f"case ratio: {lookup(case_ratio)}")
+
+    perc_overlap_ab = lookup(overlap_ab) * 100
+    perc_overlap_ba = lookup(overlap_ba) * 100
+    print(f"cases overlap: % of {args.endpoint_a} in {args.endpoint_b}: {perc_overlap_ab:6.2f}%")
+    print(f"cases overlap: % of {args.endpoint_b} in {args.endpoint_a}: {perc_overlap_ba:6.2f}%")
 
 
 if __name__ == '__main__':
