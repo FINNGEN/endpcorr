@@ -1,4 +1,5 @@
 import argparse
+import csv
 from pathlib import Path
 
 import numpy as np
@@ -97,6 +98,22 @@ def main():
         type=Path
     )
     parser_inspect.set_defaults(func=inspect)
+
+    # Command: csv
+    parser_csv = subparsers.add_parser('csv')
+    parser_csv.add_argument(
+        "-i", "--input-dir",
+        help="path to directory with input files",
+        required=True,
+        type=Path
+    )
+    parser_csv.add_argument(
+        "-o", "--csv-output",
+        help="CSV output path",
+        required=True,
+        type=Path
+    )
+    parser_csv.set_defaults(func=to_csv)
 
     # Run argument parser
     args = parser.parse_args()
@@ -317,6 +334,39 @@ def inspect(args):
     perc_overlap_ba = lookup(overlap_ba) * 100
     print(f"cases overlap: % of {args.endpoint_a} in {args.endpoint_b}: {perc_overlap_ab:6.2f}%")
     print(f"cases overlap: % of {args.endpoint_b} in {args.endpoint_a}: {perc_overlap_ba:6.2f}%")
+
+
+def to_csv(args):
+    """Output correlations of interest for all endpoints into a JSON file"""
+    df_ratio = pd.read_parquet(args.input_dir / FILE_CORR_CASE_RATIO)
+    df_overlap_ab = pd.read_parquet(args.input_dir / FILE_CORR_OVERLAP_AB)
+    df_overlap_ba = pd.read_parquet(args.input_dir / FILE_CORR_OVERLAP_BA)
+
+    with open(args.csv_output, "w", newline="") as output:
+        csv_writer = csv.writer(output)
+        # Add headers to CSV output
+        csv_writer.writerow([
+            "endpoint_a",
+            "endpoint_b",
+            "case_ratio",
+            "case_overlap_ab",
+            "case_overlap_ba"
+        ])
+
+        for endp_a, ratios in df_ratio.items():
+            for endp_b, ratio in ratios.items():
+                # Here we assume the set of endpoints are exactly the same
+                # in the case ratio, overlap AB and overlap BA.
+                overlap_ab = df_overlap_ab[endp_a][endp_b]
+                overlap_ba = df_overlap_ba[endp_a][endp_b]
+
+                csv_writer.writerow([
+                    endp_a,
+                    endp_b,
+                    ratio,
+                    overlap_ab,
+                    overlap_ba
+                ])
 
 
 if __name__ == '__main__':
