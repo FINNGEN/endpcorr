@@ -355,10 +355,17 @@ def to_csv(args):
 
         for endp_a, ratios in df_ratio.items():
             for endp_b, ratio in ratios.items():
-                # Here we assume the set of endpoints are exactly the same
-                # in the case ratio, overlap AB and overlap BA.
-                overlap_ab = df_overlap_ab[endp_a][endp_b]
-                overlap_ba = df_overlap_ba[endp_a][endp_b]
+                # Here we assume the set of endpoints are exactly the
+                # same for: case ratio, overlap AB and overlap BA. So
+                # we assume indexing by endp_b and endp_a will always
+                # succeed.
+
+                # Our matrix representation has endp_a as the "row endpoint"
+                # and endp_b as the "column endpoint".
+                # However, pandas DataFrames are indexed first by column, and
+                # then by row. That's why we use [endp_b][endp_a] here.
+                overlap_ab = df_overlap_ab[endp_b][endp_a]
+                overlap_ba = df_overlap_ba[endp_b][endp_a]
 
                 csv_writer.writerow([
                     endp_a,
