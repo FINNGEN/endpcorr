@@ -332,12 +332,12 @@ def inspect(args):
 
     perc_overlap_ab = lookup(overlap_ab) * 100
     perc_overlap_ba = lookup(overlap_ba) * 100
-    print(f"cases overlap: % of {args.endpoint_a} in {args.endpoint_b}: {perc_overlap_ab:6.2f}%")
-    print(f"cases overlap: % of {args.endpoint_b} in {args.endpoint_a}: {perc_overlap_ba:6.2f}%")
+    print(f"{perc_overlap_ab:6.2f}% of {args.endpoint_b} cases are shared cases with {args.endpoint_a}")
+    print(f"{perc_overlap_ba:6.2f}% of {args.endpoint_a} cases are shared cases with {args.endpoint_b}")
 
 
 def to_csv(args):
-    """Output correlations of interest for all endpoints into a JSON file"""
+    """Output correlations of interest for all endpoints into a CSV file"""
     df_ratio = pd.read_parquet(args.input_dir / FILE_CORR_CASE_RATIO)
     df_overlap_ab = pd.read_parquet(args.input_dir / FILE_CORR_OVERLAP_AB)
     df_overlap_ba = pd.read_parquet(args.input_dir / FILE_CORR_OVERLAP_BA)
