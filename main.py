@@ -25,6 +25,9 @@ VAL_EXCL = "NA"
 # lines of the input file.
 MAX_LINES = 600_000
 
+# Define treshold for individual-level data
+MIN_CASES = 5
+
 # Output files
 FILE_CASES_CASES =       "n_cases_cases.parq"
 FILE_CASES_CONTROLS =    "n_cases_controls.parq"
@@ -112,6 +115,11 @@ def main():
         help="CSV output path",
         required=True,
         type=Path
+    )
+    parser_csv.add_argument(
+        "-k", "--keep-all",
+        help="keep all data, even individual-level data, in the CSV output",
+        action='store_true'
     )
     parser_csv.set_defaults(func=to_csv)
 
@@ -338,9 +346,38 @@ def inspect(args):
 
 def to_csv(args):
     """Output correlations of interest for all endpoints into a CSV file"""
+    # Load correlation files
+    # NOTE(vincent): counts files used by the following correlations
+    # *MUST BE* loaded to be checked for individual-level data.
     df_ratio = pd.read_parquet(args.input_dir / FILE_CORR_CASE_RATIO)
     df_overlap_ab = pd.read_parquet(args.input_dir / FILE_CORR_OVERLAP_AB)
     df_overlap_ba = pd.read_parquet(args.input_dir / FILE_CORR_OVERLAP_BA)
+
+    # Load count files.
+    # These are used to check that the underlying correlations don't
+    # use any individual-level data.
+    # It is important to check the counts even if they are not present
+    # in the output, as someone with partial information could
+    # traceback individual-level data.
+    # For example, someone knowing that:
+    # - there are 10 cases for endpoint A
+    # - overlap AB is 1.0
+    # - overlap BA is 0.2
+    # can deduce they are 2 cases (individual-level data) for endpoint B.
+    if not args.keep_all:
+        df_cases_cases = pd.read_parquet(FILE_CASES_CASES)
+        df_cases_controls = pd.read_parquet(FILE_CASES_CONTROLS)
+        df_controls_cases = pd.read_parquet(FILE_CONTROLS_CASES)
+        df_excl_cases = pd.read_parquet(FILE_EXCL_CASES)
+        df_cases_excl = pd.read_parquet(FILE_CASES_EXCL)
+
+        df_keep = (
+            (df_cases_cases > MIN_CASES)
+            & (df_cases_controls > MIN_CASES)
+            & (df_controls_cases > MIN_CASES)
+            & (df_excl_cases > MIN_CASES)
+            & (df_cases_excl > MIN_CASES)
+        )
 
     with open(args.csv_output, "w", newline="") as output:
         csv_writer = csv.writer(output)
@@ -355,25 +392,32 @@ def to_csv(args):
 
         for endp_a, ratios in df_ratio.items():
             for endp_b, ratio in ratios.items():
-                # Here we assume the set of endpoints are exactly the
-                # same for: case ratio, overlap AB and overlap BA. So
-                # we assume indexing by endp_b and endp_a will always
-                # succeed.
-
                 # Our matrix representation has endp_a as the "row endpoint"
                 # and endp_b as the "column endpoint".
                 # However, pandas DataFrames are indexed first by column, and
                 # then by row. That's why we use [endp_b][endp_a] here.
-                overlap_ab = df_overlap_ab[endp_b][endp_a]
-                overlap_ba = df_overlap_ba[endp_b][endp_a]
 
-                csv_writer.writerow([
-                    endp_a,
-                    endp_b,
-                    ratio,
-                    overlap_ab,
-                    overlap_ba
-                ])
+                # Check for individual-level data
+                if args.keep_all:
+                    keep_row = True
+                else:
+                    keep_row = df_keep[endp_b][endp_a]
+
+                if keep_row:
+                    # Here we assume the set of endpoints are exactly the
+                    # same for: case ratio, overlap AB and overlap BA. So
+                    # we assume indexing by endp_b and endp_a will always
+                    # succeed.
+                    overlap_ab = df_overlap_ab[endp_b][endp_a]
+                    overlap_ba = df_overlap_ba[endp_b][endp_a]
+
+                    csv_writer.writerow([
+                        endp_a,
+                        endp_b,
+                        ratio,
+                        overlap_ab,
+                        overlap_ba
+                    ])
 
 
 if __name__ == '__main__':
