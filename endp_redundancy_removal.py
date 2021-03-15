@@ -69,49 +69,71 @@ def main():
     )
 
     # Alg step
-    accepted = []
     df = df_gwsig.copy()
+    df_accepted = pd.DataFrame({
+        "endpoint": [],
+        "redundant_endpoints_removed": []
+    })
     while df.shape[0] > 0:
-        df, accepted = step(
+        df, df_accepted = step(
+            args.threshold_case_ratio,
             df,
             df_case_ratio,
-            accepted,
-            args.threshold_case_ratio,
+            df_accepted,
             args.debug
         )
 
     # Output
-    df_accepted = pd.DataFrame({"endpoint": accepted})
     df_accepted.merge(
-        df_gwsig.loc[:, ["endpoint", "gwas_sig_hits"]],
+        df_gwsig,
         on="endpoint"
-    ).to_csv(args.output, index=False)
+    ).loc[
+        :,
+        # Reorder columns
+        ["endpoint", "gwas_sig_hits", "cases", "redundant_endpoints_removed"]
+    ].to_csv(args.output, index=False)
 
 
-
-def step(df_gwsig, df_case_ratio, accepted, cr_threshold, debug):
+def step(
+        cr_threshold,
+        df_gwsig,
+        df_case_ratio,
+        df_accepted,
+        debug
+):
+    # Select "accepted" endpoint
     top_row = df_gwsig.iloc[0]
+    endp = top_row.endpoint
+
+    # Remove accepted endpoint from the list of endpoints to do
     df_gwsig = df_gwsig.iloc[1:]
 
-    endp = top_row.endpoint
-    accepted.append(endp)
-
+    # Add case-ratio info wrt to accepted endpoint
     endp_cr = df_case_ratio.loc[:, [endp]]
     endp_cr = endp_cr.rename(columns={endp: "case_ratio"})
     endp_cr["endpoint"] = endp_cr.index
 
+    # Find redundant endpoints based on case-ratio threshold
     df = df_gwsig.merge(endp_cr, on="endpoint")
-    if debug:
-        discarded = df.loc[df.case_ratio > cr_threshold, :]
+    df_redundant = df.loc[df.case_ratio > cr_threshold, :]
     df = df.loc[df.case_ratio <= cr_threshold, :]
 
-    if debug and discarded.shape[0] > 0:
+    if debug and df_redundant.shape[0] > 0:
         print(f"Current endpoint: {endp}")
-        print(f"discarding {discarded.shape[0]} endpoints:")
-        print(discarded, end="\n\n")
+        print(f"redundant endpoints: {df_redundant.shape[0]}")
+        print(df_redundant, end="\n\n")
 
+    # Keep same shape as the input
     df_gwsig = df.drop("case_ratio", axis="columns")
-    return df_gwsig, accepted
+
+    # Add info on accepted endpoint
+    df_accepted = df_accepted.append({
+            "endpoint": endp,
+            "redundant_endpoints_removed": " ".join(df_redundant.endpoint.values)
+        },
+        ignore_index=True
+    )
+    return df_gwsig, df_accepted
 
 
 if __name__ == '__main__':
