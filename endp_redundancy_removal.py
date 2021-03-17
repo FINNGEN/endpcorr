@@ -4,6 +4,10 @@ from pathlib import Path
 import pandas as pd
 
 
+# Threshold defining individual-level data
+MIN_CASES = 5
+
+
 def main():
     parser = argparse.ArgumentParser()
 
@@ -84,6 +88,7 @@ def main():
         )
 
     # Output
+    df_gwsig = df_gwsig.loc[df_gwsig.cases > MIN_CASES, :]  # reject individual level data
     df_accepted.merge(
         df_gwsig,
         on="endpoint"
