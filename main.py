@@ -391,12 +391,13 @@ def to_csv(args):
             "ratio_shared_of_b"
         ])
 
-        for endp_a, ratios in df_ratio.items():
-            for endp_b, ratio in ratios.items():
+        for endp_b, ratios in df_case_ratio.items():
+            for endp_a, ratio in ratios.items():
                 # Our matrix representation has endp_a as the "row endpoint"
                 # and endp_b as the "column endpoint".
                 # However, pandas DataFrames are indexed first by column, and
                 # then by row. That's why we use [endp_b][endp_a] here.
+                # This matters because the "df_share_of" are not symmetricals.
 
                 # Check for individual-level data
                 if args.keep_all:
