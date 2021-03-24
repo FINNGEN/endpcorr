@@ -29,20 +29,20 @@ MAX_LINES = 600_000
 MIN_CASES = 5
 
 # Output files
-FILE_CASES_CASES =       "n_cases_cases.parq"
-FILE_CASES_CONTROLS =    "n_cases_controls.parq"
-FILE_CASES_EXCL =        "n_cases_excl.parq"
-FILE_CONTROLS_CASES =    "n_controls_cases.parq"
-FILE_CONTROLS_CONTROLS = "n_controls_controls.parq"
-FILE_CONTROLS_EXCL =     "n_controls_excl.parq"
-FILE_EXCL_CASES =        "n_excl_cases.parq"
-FILE_EXCL_CONTROLS =     "n_excl_controls.parq"
-FILE_EXCL_EXCL =         "n_excl_excl.parq"
-FILE_CORR_PHI =          "corr_phi.parq"
-FILE_CORR_CHISQ =        "corr_chisq.parq"
-FILE_CORR_CASE_RATIO =   "corr_case_ratio.parq"
-FILE_CORR_OVERLAP_AB =   "corr_overlap_ab.parq"
-FILE_CORR_OVERLAP_BA =   "corr_overlap_ba.parq"
+FILE_CASES_CASES      = "n_cases_cases.parq"
+FILE_CASES_CONTROLS   = "n_cases_controls.parq"
+FILE_CASES_EXCL       = "n_cases_excl.parq"
+FILE_CONTROLS_CASES   = "n_controls_cases.parq"
+FILE_CONTROLS_CONTROLS= "n_controls_controls.parq"
+FILE_CONTROLS_EXCL    = "n_controls_excl.parq"
+FILE_EXCL_CASES       = "n_excl_cases.parq"
+FILE_EXCL_CONTROLS    = "n_excl_controls.parq"
+FILE_EXCL_EXCL        = "n_excl_excl.parq"
+FILE_CORR_PHI         = "corr_phi.parq"
+FILE_CORR_CHISQ       = "corr_chisq.parq"
+FILE_CORR_CASE_RATIO  = "corr_case_ratio.parq"
+FILE_CORR_SHARED_OF_A = "corr_shared_of_a.parq"
+FILE_CORR_SHARED_OF_B = "corr_shared_of_b.parq"
 
 
 def main():
@@ -242,10 +242,10 @@ def compute(args):
     n_excl_controls = n_controls_excl.T
 
     # Compute correlation coefficients for all endpoints
-    fphi, fchisq, fcase_ratio, overlap_ab, overlap_ba = correlations(
-        n_cases_cases, n_cases_controls, n_cases_excl,
+    fphi, fchisq, fcase_ratio, shared_of_a, shared_of_b = correlations(
+        n_cases_cases,    n_cases_controls,    n_cases_excl,
         n_controls_cases, n_controls_controls, n_controls_excl,
-        n_excl_cases, n_excl_controls, n_excl_excl
+        n_excl_cases,     n_excl_controls,     n_excl_excl
     )
 
     # Output files
@@ -263,8 +263,8 @@ def compute(args):
         (fphi, FILE_CORR_PHI),
         (fchisq, FILE_CORR_CHISQ),
         (fcase_ratio, FILE_CORR_CASE_RATIO),
-        (overlap_ab, FILE_CORR_OVERLAP_AB),
-        (overlap_ba, FILE_CORR_OVERLAP_BA)
+        (shared_of_a, FILE_CORR_SHARED_OF_A),
+        (shared_of_b, FILE_CORR_SHARED_OF_B)
     ]
     for df, output_path in outputs:
         pd.DataFrame(
@@ -275,7 +275,6 @@ def compute(args):
         ).to_parquet(args.output_dir / output_path)
 
 
-
 def correlations(
         n11,  n10,  n12,
         n01,  n00, _n02,
@@ -283,10 +282,10 @@ def correlations(
 ):
     """Swiftly compute correlation coefficients using operations on matrices"""
     # Notation:
-    #                    cases  controls  excluded controls
-    #             cases  n11    n10       n12
-    #          controls  n01    n00       n02
-    # excluded controls  n21    n20       n22
+    #                      B cases  B controls  B excluded controls
+    #             A cases  n11      n10         n12
+    #          A controls  n01      n00         n02
+    # A excluded controls  n21      n20         n22
     phi = (
         (n11 * n00 - n10 * n01)
         / np.sqrt(
@@ -298,10 +297,10 @@ def correlations(
 
     case_ratio = n11 / (n10 + n01 + n11 + n21 + n12)
 
-    overlap_ab = n11 / (n11 + n01 + n21)
-    overlap_ba = n11 / (n11 + n10 + n12)
+    shared_of_a = n11 / (n11 + n10 + n12)
+    shared_of_b = n11 / (n11 + n01 + n21)
 
-    return phi, chisq, case_ratio, overlap_ab, overlap_ba
+    return phi, chisq, case_ratio, shared_of_a, shared_of_b
 
 
 def inspect(args):
@@ -324,24 +323,24 @@ def inspect(args):
     phi = args.input_dir / FILE_CORR_PHI
     chisq = args.input_dir / FILE_CORR_CHISQ
     case_ratio = args.input_dir / FILE_CORR_CASE_RATIO
-    overlap_ab = args.input_dir / FILE_CORR_OVERLAP_AB
-    overlap_ba = args.input_dir / FILE_CORR_OVERLAP_BA
+    shared_of_a = args.input_dir / FILE_CORR_SHARED_OF_A
+    shared_of_b = args.input_dir / FILE_CORR_SHARED_OF_B
 
     table = np.array([
         [lookup(n11), lookup(n10), lookup(n12)],
         [lookup(n01), lookup(n00), lookup(n02)],
         [lookup(n21), lookup(n20), lookup(n22)]
     ], dtype=np.int32)
-    print(f"{row} \\ {col}\n{table}")
+    print(f"(A) {row} \\ (B) {col}\n{table}")
 
     print(f"φ: {lookup(phi)}")
     print(f"χ²: {lookup(chisq)}")
     print(f"case ratio: {lookup(case_ratio)}")
 
-    perc_overlap_ab = lookup(overlap_ab) * 100
-    perc_overlap_ba = lookup(overlap_ba) * 100
-    print(f"{perc_overlap_ab:6.2f}% of {args.endpoint_b} cases are shared cases with {args.endpoint_a}")
-    print(f"{perc_overlap_ba:6.2f}% of {args.endpoint_a} cases are shared cases with {args.endpoint_b}")
+    perc_shared_of_a = lookup(shared_of_a) * 100
+    perc_shared_of_b = lookup(shared_of_b) * 100
+    print(f"{perc_shared_of_a:6.2f}% of {args.endpoint_a} cases are shared cases with {args.endpoint_b}")
+    print(f"{perc_shared_of_b:6.2f}% of {args.endpoint_b} cases are shared cases with {args.endpoint_a}")
 
 
 def to_csv(args):
@@ -349,9 +348,9 @@ def to_csv(args):
     # Load correlation files
     # NOTE(vincent): counts files used by the following correlations
     # *MUST BE* loaded to be checked for individual-level data.
-    df_ratio = pd.read_parquet(args.input_dir / FILE_CORR_CASE_RATIO)
-    df_overlap_ab = pd.read_parquet(args.input_dir / FILE_CORR_OVERLAP_AB)
-    df_overlap_ba = pd.read_parquet(args.input_dir / FILE_CORR_OVERLAP_BA)
+    df_case_ratio = pd.read_parquet(args.input_dir / FILE_CORR_CASE_RATIO)
+    df_shared_of_a = pd.read_parquet(args.input_dir / FILE_CORR_SHARED_OF_A)
+    df_shared_of_b = pd.read_parquet(args.input_dir / FILE_CORR_SHARED_OF_B)
 
     # Load count files.
     # These are used to check that the underlying correlations don't
@@ -361,8 +360,8 @@ def to_csv(args):
     # traceback individual-level data.
     # For example, someone knowing that:
     # - there are 10 cases for endpoint A
-    # - overlap AB is 1.0
-    # - overlap BA is 0.2
+    # - shared cases of A is 0.2
+    # - shared cases of B is 1.0
     # can deduce they are 2 cases (individual-level data) for endpoint B.
     if not args.keep_all:
         df_cases_cases = pd.read_parquet(FILE_CASES_CASES)
@@ -371,6 +370,8 @@ def to_csv(args):
         df_excl_cases = pd.read_parquet(FILE_EXCL_CASES)
         df_cases_excl = pd.read_parquet(FILE_CASES_EXCL)
 
+        # Matrix (symmetrical) that tracks wich (endp A, endp B) can
+        # be kept in the output.
         df_keep = (
             (df_cases_cases > MIN_CASES)
             & (df_cases_controls > MIN_CASES)
@@ -386,8 +387,8 @@ def to_csv(args):
             "endpoint_a",
             "endpoint_b",
             "case_ratio",
-            "case_overlap_ab",
-            "case_overlap_ba"
+            "ratio_shared_of_a",
+            "ratio_shared_of_b"
         ])
 
         for endp_a, ratios in df_ratio.items():
@@ -404,19 +405,19 @@ def to_csv(args):
                     keep_row = df_keep[endp_b][endp_a]
 
                 if keep_row:
-                    # Here we assume the set of endpoints are exactly the
-                    # same for: case ratio, overlap AB and overlap BA. So
-                    # we assume indexing by endp_b and endp_a will always
-                    # succeed.
-                    overlap_ab = df_overlap_ab[endp_b][endp_a]
-                    overlap_ba = df_overlap_ba[endp_b][endp_a]
+                    # Here we assume the set of endpoints are exactly
+                    # the same for: case ratio, shared of A and shared
+                    # of B. So we assume indexing by endp_b and endp_a
+                    # will always succeed.
+                    shared_of_a = df_shared_of_a[endp_b][endp_a]
+                    shared_of_b = df_shared_of_b[endp_b][endp_a]
 
                     csv_writer.writerow([
                         endp_a,
                         endp_b,
                         ratio,
-                        overlap_ab,
-                        overlap_ba
+                        shared_of_a,
+                        shared_of_b
                     ])
 
 
