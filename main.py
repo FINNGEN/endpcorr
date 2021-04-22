@@ -364,11 +364,11 @@ def to_csv(args):
     # - shared cases of B is 1.0
     # can deduce they are 2 cases (individual-level data) for endpoint B.
     if not args.keep_all:
-        df_cases_cases = pd.read_parquet(FILE_CASES_CASES)
-        df_cases_controls = pd.read_parquet(FILE_CASES_CONTROLS)
-        df_controls_cases = pd.read_parquet(FILE_CONTROLS_CASES)
-        df_excl_cases = pd.read_parquet(FILE_EXCL_CASES)
-        df_cases_excl = pd.read_parquet(FILE_CASES_EXCL)
+        df_cases_cases = pd.read_parquet(args.input_dir / FILE_CASES_CASES)
+        df_cases_controls = pd.read_parquet(args.input_dir /FILE_CASES_CONTROLS)
+        df_controls_cases = pd.read_parquet(args.input_dir /FILE_CONTROLS_CASES)
+        df_excl_cases = pd.read_parquet(args.input_dir /FILE_EXCL_CASES)
+        df_cases_excl = pd.read_parquet(args.input_dir /FILE_CASES_EXCL)
 
         # Matrix (symmetrical) that tracks wich (endp A, endp B) can
         # be kept in the output.
