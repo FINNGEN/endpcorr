@@ -373,11 +373,11 @@ def to_csv(args):
         # Matrix (symmetrical) that tracks wich (endp A, endp B) can
         # be kept in the output.
         df_keep = (
-            (df_cases_cases > MIN_CASES)
-            & (df_cases_controls > MIN_CASES)
-            & (df_controls_cases > MIN_CASES)
-            & (df_excl_cases > MIN_CASES)
-            & (df_cases_excl > MIN_CASES)
+            ((df_cases_cases > MIN_CASES) | (df_cases_cases == 0))
+            & ((df_cases_controls > MIN_CASES) | (df_cases_controls == 0))
+            & ((df_controls_cases > MIN_CASES) | (df_controls_cases == 0))
+            & ((df_excl_cases > MIN_CASES) | (df_excl_cases == 0))
+            & ((df_cases_excl > MIN_CASES) | (df_cases_excl == 0))
         )
 
     with open(args.csv_output, "w", newline="") as output:
