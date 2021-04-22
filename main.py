@@ -8,12 +8,6 @@ import pandas as pd
 
 # -- Configuration
 
-# Endpoint input file: field separator
-SEP = "\t"
-
-# Endpoint input file: value encoding excluded controls
-VAL_EXCL = "NA"
-
 # At most how many lines are in the input file.
 # User: the upper bound of 600_000 is ok, if you get an error
 # message saying the bottom lines of the input file were not read,
@@ -63,6 +57,18 @@ def main():
         help="path to intermediate output file (Parquet)",
         required=True,
         type=Path
+    )
+    parser_init.add_argument(
+        "-d", "--delimiter",
+        help="input file field seperator (e.g. '\t' or ',')",
+        required=False,
+        default="\t"
+    )
+    parser_init.add_argument(
+        "-x", "--value-excluded-control",
+        help="encoding of excluded controls in input file (e.g. 'NA' or '')",
+        required=False,
+        default="NA"
     )
     parser_init.set_defaults(func=init)
 
@@ -150,7 +156,7 @@ def init(args):
     with open(path_fevents) as f:
         # Get headers
         line = next(f).rstrip()
-        headers = line.split(SEP)
+        headers = line.split(args.delimiter)
         set_headers = set(headers)
 
         # Select only the endpoint columns
@@ -185,12 +191,12 @@ def init(args):
             # Process with parsing the line and putting it in the
             # numpy array.
             line = line.rstrip()
-            row = line.split(SEP)
+            row = line.split(args.delimiter)
             row_cursor = 0
             for vv, value in enumerate(row):
                 if vv in pos_endpoints:
                     uint8_val_excl = 2
-                    x = uint8_val_excl if value == VAL_EXCL else value
+                    x = uint8_val_excl if value == args.value_excluded_control else value
                     table[ll, row_cursor] = x
                     row_cursor += 1
 
