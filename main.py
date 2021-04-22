@@ -29,20 +29,20 @@ MAX_LINES = 600_000
 MIN_CASES = 5
 
 # Output files
-FILE_CASES_CASES      = "n_cases_cases.parq"
-FILE_CASES_CONTROLS   = "n_cases_controls.parq"
-FILE_CASES_EXCL       = "n_cases_excl.parq"
-FILE_CONTROLS_CASES   = "n_controls_cases.parq"
-FILE_CONTROLS_CONTROLS= "n_controls_controls.parq"
-FILE_CONTROLS_EXCL    = "n_controls_excl.parq"
-FILE_EXCL_CASES       = "n_excl_cases.parq"
-FILE_EXCL_CONTROLS    = "n_excl_controls.parq"
-FILE_EXCL_EXCL        = "n_excl_excl.parq"
-FILE_CORR_PHI         = "corr_phi.parq"
-FILE_CORR_CHISQ       = "corr_chisq.parq"
-FILE_CORR_CASE_RATIO  = "corr_case_ratio.parq"
-FILE_CORR_SHARED_OF_A = "corr_shared_of_a.parq"
-FILE_CORR_SHARED_OF_B = "corr_shared_of_b.parq"
+FILE_CASES_CASES       = "n_cases_cases.parq"
+FILE_CASES_CONTROLS    = "n_cases_controls.parq"
+FILE_CASES_EXCL        = "n_cases_excl.parq"
+FILE_CONTROLS_CASES    = "n_controls_cases.parq"
+FILE_CONTROLS_CONTROLS = "n_controls_controls.parq"
+FILE_CONTROLS_EXCL     = "n_controls_excl.parq"
+FILE_EXCL_CASES        = "n_excl_cases.parq"
+FILE_EXCL_CONTROLS     = "n_excl_controls.parq"
+FILE_EXCL_EXCL         = "n_excl_excl.parq"
+FILE_CORR_PHI          = "corr_phi.parq"
+FILE_CORR_CHISQ        = "corr_chisq.parq"
+FILE_CORR_CASE_RATIO   = "corr_case_ratio.parq"
+FILE_CORR_SHARED_OF_A  = "corr_shared_of_a.parq"
+FILE_CORR_SHARED_OF_B  = "corr_shared_of_b.parq"
 
 
 def main():
