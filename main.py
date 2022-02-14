@@ -60,7 +60,7 @@ def main():
     )
     parser_init.add_argument(
         "-d", "--delimiter",
-        help="input file field seperator (e.g. '\t' or ',')",
+        help="input file field seperator (e.g. '\\t' or ',')",
         required=False,
         default="\t"
     )
