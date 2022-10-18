@@ -131,6 +131,11 @@ def main():
 
     # Run argument parser
     args = parser.parse_args()
+
+    # Unescape the delimiter, as the shell escapes the \
+    if args.func == init and args.delimiter == "\\t":
+        args.delimiter = "\t"
+
     if not vars(args):
         parser.print_help()
     else:
