@@ -360,6 +360,7 @@ def to_csv(args):
     # NOTE(vincent): counts files used by the following correlations
     # *MUST BE* loaded to be checked for individual-level data.
     df_case_ratio = pd.read_parquet(args.input_dir / FILE_CORR_CASE_RATIO)
+    df_cases_cases = pd.read_parquet(args.input_dir / FILE_CASES_CASES)
     df_shared_of_a = pd.read_parquet(args.input_dir / FILE_CORR_SHARED_OF_A)
     df_shared_of_b = pd.read_parquet(args.input_dir / FILE_CORR_SHARED_OF_B)
 
@@ -398,6 +399,7 @@ def to_csv(args):
             "endpoint_a",
             "endpoint_b",
             "case_ratio",
+            "case_overlap_N",
             "ratio_shared_of_a",
             "ratio_shared_of_b"
         ])
@@ -423,11 +425,13 @@ def to_csv(args):
                     # will always succeed.
                     shared_of_a = df_shared_of_a[endp_b][endp_a]
                     shared_of_b = df_shared_of_b[endp_b][endp_a]
+                    overlap_N = int(df_cases_cases[endp_b][endp_a])
 
                     csv_writer.writerow([
                         endp_a,
                         endp_b,
                         ratio,
+                        overlap_N,
                         shared_of_a,
                         shared_of_b
                     ])
