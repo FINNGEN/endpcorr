@@ -23,20 +23,20 @@ MAX_LINES = 600_000
 MIN_CASES = 5
 
 # Output files
-FILE_CASES_CASES       = "n_cases_cases.parq"
-FILE_CASES_CONTROLS    = "n_cases_controls.parq"
-FILE_CASES_EXCL        = "n_cases_excl.parq"
-FILE_CONTROLS_CASES    = "n_controls_cases.parq"
-FILE_CONTROLS_CONTROLS = "n_controls_controls.parq"
-FILE_CONTROLS_EXCL     = "n_controls_excl.parq"
-FILE_EXCL_CASES        = "n_excl_cases.parq"
-FILE_EXCL_CONTROLS     = "n_excl_controls.parq"
-FILE_EXCL_EXCL         = "n_excl_excl.parq"
-FILE_CORR_PHI          = "corr_phi.parq"
-FILE_CORR_CHISQ        = "corr_chisq.parq"
-FILE_CORR_CASE_OVERLAP   = "corr_case_overlap.parq"
-FILE_CORR_SHARED_OF_A  = "corr_shared_of_a.parq"
-FILE_CORR_SHARED_OF_B  = "corr_shared_of_b.parq"
+FILE_CASES_CASES        = "n_cases_cases.parq"
+FILE_CASES_CONTROLS     = "n_cases_controls.parq"
+FILE_CASES_EXCL         = "n_cases_excl.parq"
+FILE_CONTROLS_CASES     = "n_controls_cases.parq"
+FILE_CONTROLS_CONTROLS  = "n_controls_controls.parq"
+FILE_CONTROLS_EXCL      = "n_controls_excl.parq"
+FILE_EXCL_CASES         = "n_excl_cases.parq"
+FILE_EXCL_CONTROLS      = "n_excl_controls.parq"
+FILE_EXCL_EXCL          = "n_excl_excl.parq"
+FILE_CORR_PHI           = "corr_phi.parq"
+FILE_CORR_CHISQ         = "corr_chisq.parq"
+FILE_CORR_JACCARD_INDEX = "corr_jaccard_index.parq"
+FILE_CORR_SHARED_OF_A   = "corr_shared_of_a.parq"
+FILE_CORR_SHARED_OF_B   = "corr_shared_of_b.parq"
 
 
 def main():
@@ -253,7 +253,7 @@ def compute(args):
     n_excl_controls = n_controls_excl.T
 
     # Compute correlation coefficients for all endpoints
-    fphi, fchisq, fcase_overlap, shared_of_a, shared_of_b = correlations(
+    fphi, fchisq, fjaccard_index, shared_of_a, shared_of_b = correlations(
         n_cases_cases,    n_cases_controls,    n_cases_excl,
         n_controls_cases, n_controls_controls, n_controls_excl,
         n_excl_cases,     n_excl_controls,     n_excl_excl
@@ -273,7 +273,7 @@ def compute(args):
         (n_excl_excl, FILE_EXCL_EXCL),
         (fphi, FILE_CORR_PHI),
         (fchisq, FILE_CORR_CHISQ),
-        (fcase_overlap, FILE_CORR_CASE_OVERLAP),
+        (fjaccard_index, FILE_CORR_JACCARD_INDEX),
         (shared_of_a, FILE_CORR_SHARED_OF_A),
         (shared_of_b, FILE_CORR_SHARED_OF_B)
     ]
@@ -306,12 +306,12 @@ def correlations(
 
     chisq = (n11 + n10 + n01 + n00) * phi * phi
 
-    case_overlap = n11 / (n10 + n01 + n11 + n21 + n12)
+    jaccard_index = n11 / (n10 + n01 + n11 + n21 + n12)
 
     shared_of_a = n11 / (n11 + n10 + n12)
     shared_of_b = n11 / (n11 + n01 + n21)
 
-    return phi, chisq, case_overlap, shared_of_a, shared_of_b
+    return phi, chisq, jaccard_index, shared_of_a, shared_of_b
 
 
 def inspect(args):
@@ -333,7 +333,7 @@ def inspect(args):
     n22 = args.input_dir / FILE_EXCL_EXCL
     phi = args.input_dir / FILE_CORR_PHI
     chisq = args.input_dir / FILE_CORR_CHISQ
-    case_overlap = args.input_dir / FILE_CORR_CASE_OVERLAP
+    jaccard_index = args.input_dir / FILE_CORR_JACCARD_INDEX
     shared_of_a = args.input_dir / FILE_CORR_SHARED_OF_A
     shared_of_b = args.input_dir / FILE_CORR_SHARED_OF_B
 
@@ -346,7 +346,7 @@ def inspect(args):
 
     print(f"φ: {lookup(phi)}")
     print(f"χ²: {lookup(chisq)}")
-    print(f"case overlap: {lookup(case_overlap)}")
+    print(f"Jaccard index: {lookup(jaccard_index)}")
 
     perc_shared_of_a = lookup(shared_of_a) * 100
     perc_shared_of_b = lookup(shared_of_b) * 100
@@ -359,7 +359,7 @@ def to_csv(args):
     # Load correlation files
     # NOTE(vincent): counts files used by the following correlations
     # *MUST BE* loaded to be checked for individual-level data.
-    df_case_overlap = pd.read_parquet(args.input_dir / FILE_CORR_CASE_OVERLAP)
+    df_jaccard_index = pd.read_parquet(args.input_dir / FILE_CORR_JACCARD_INDEX)
     df_cases_cases = pd.read_parquet(args.input_dir / FILE_CASES_CASES)
     df_shared_of_a = pd.read_parquet(args.input_dir / FILE_CORR_SHARED_OF_A)
     df_shared_of_b = pd.read_parquet(args.input_dir / FILE_CORR_SHARED_OF_B)
@@ -398,14 +398,14 @@ def to_csv(args):
         csv_writer.writerow([
             "endpoint_a",
             "endpoint_b",
-            "case_overlap_percent",
+            "jaccard_index",
             "case_overlap_N",
             "ratio_shared_of_a",
             "ratio_shared_of_b"
         ])
 
-        for endp_b, overlaps in df_case_overlap.items():
-            for endp_a, overlap_percent in overlaps.items():
+        for endp_b, indexes in df_jaccard_index.items():
+            for endp_a, jaccard_index in indexes.items():
                 # Our matrix representation has endp_a as the "row endpoint"
                 # and endp_b as the "column endpoint".
                 # However, pandas DataFrames are indexed first by column, and
@@ -430,7 +430,7 @@ def to_csv(args):
                     csv_writer.writerow([
                         endp_a,
                         endp_b,
-                        overlap_percent,
+                        jaccard_index,
                         overlap_N,
                         shared_of_a,
                         shared_of_b
