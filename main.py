@@ -37,6 +37,7 @@ FILE_CORR_CHISQ         = "corr_chisq.parq"
 FILE_CORR_JACCARD_INDEX = "corr_jaccard_index.parq"
 FILE_CORR_SHARED_OF_A   = "corr_shared_of_a.parq"
 FILE_CORR_SHARED_OF_B   = "corr_shared_of_b.parq"
+FILE_CORR_OVERLAP_COEF  = "corr_overlap_coef.parq"
 
 
 def main():
@@ -253,7 +254,7 @@ def compute(args):
     n_excl_controls = n_controls_excl.T
 
     # Compute correlation coefficients for all endpoints
-    fphi, fchisq, fjaccard_index, shared_of_a, shared_of_b = correlations(
+    fphi, fchisq, fjaccard_index, shared_of_a, shared_of_b, overlap_coef = correlations(
         n_cases_cases,    n_cases_controls,    n_cases_excl,
         n_controls_cases, n_controls_controls, n_controls_excl,
         n_excl_cases,     n_excl_controls,     n_excl_excl
@@ -275,7 +276,8 @@ def compute(args):
         (fchisq, FILE_CORR_CHISQ),
         (fjaccard_index, FILE_CORR_JACCARD_INDEX),
         (shared_of_a, FILE_CORR_SHARED_OF_A),
-        (shared_of_b, FILE_CORR_SHARED_OF_B)
+        (shared_of_b, FILE_CORR_SHARED_OF_B),
+        (overlap_coef, FILE_CORR_OVERLAP_COEF),
     ]
     for df, output_path in outputs:
         pd.DataFrame(
@@ -308,10 +310,14 @@ def correlations(
 
     jaccard_index = n11 / (n10 + n01 + n11 + n21 + n12)
 
+    n_cases_a = n11 + n10 + n12
+    n_cases_b = n11 + n01 + n21
+    overlap_coef = n11 / np.minimum(n_cases_a, n_cases_b)
+
     shared_of_a = n11 / (n11 + n10 + n12)
     shared_of_b = n11 / (n11 + n01 + n21)
 
-    return phi, chisq, jaccard_index, shared_of_a, shared_of_b
+    return phi, chisq, jaccard_index, shared_of_a, shared_of_b, overlap_coef
 
 
 def inspect(args):
@@ -336,6 +342,7 @@ def inspect(args):
     jaccard_index = args.input_dir / FILE_CORR_JACCARD_INDEX
     shared_of_a = args.input_dir / FILE_CORR_SHARED_OF_A
     shared_of_b = args.input_dir / FILE_CORR_SHARED_OF_B
+    overlap_coef = args.input_dir / FILE_CORR_OVERLAP_COEF
 
     table = np.array([
         [lookup(n11), lookup(n10), lookup(n12)],
@@ -353,6 +360,8 @@ def inspect(args):
     print(f"{perc_shared_of_a:6.2f}% of {args.endpoint_a} cases are shared cases with {args.endpoint_b}")
     print(f"{perc_shared_of_b:6.2f}% of {args.endpoint_b} cases are shared cases with {args.endpoint_a}")
 
+    print(f"Overlap coefficient: {lookup(overlap_coef)}")
+
 
 def to_csv(args):
     """Output correlations of interest for all endpoints into a CSV file"""
@@ -363,6 +372,7 @@ def to_csv(args):
     df_cases_cases = pd.read_parquet(args.input_dir / FILE_CASES_CASES)
     df_shared_of_a = pd.read_parquet(args.input_dir / FILE_CORR_SHARED_OF_A)
     df_shared_of_b = pd.read_parquet(args.input_dir / FILE_CORR_SHARED_OF_B)
+    df_overlap_coef = pd.read_parquet(args.input_dir / FILE_CORR_OVERLAP_COEF)
 
     # Load count files.
     # These are used to check that the underlying correlations don't
@@ -401,11 +411,12 @@ def to_csv(args):
             "jaccard_index",
             "case_overlap_N",
             "ratio_shared_of_a",
-            "ratio_shared_of_b"
+            "ratio_shared_of_b",
+            "overlap_coef"
         ])
 
-        for endp_b, indexes in df_jaccard_index.items():
-            for endp_a, jaccard_index in indexes.items():
+        for endp_b, indices in df_jaccard_index.items():
+            for endp_a, jaccard_index in indices.items():
                 # Our matrix representation has endp_a as the "row endpoint"
                 # and endp_b as the "column endpoint".
                 # However, pandas DataFrames are indexed first by column, and
@@ -426,6 +437,7 @@ def to_csv(args):
                     shared_of_a = df_shared_of_a[endp_b][endp_a]
                     shared_of_b = df_shared_of_b[endp_b][endp_a]
                     overlap_N = int(df_cases_cases[endp_b][endp_a])
+                    overlap_coef = df_overlap_coef[endp_b][endp_a]
 
                     csv_writer.writerow([
                         endp_a,
@@ -433,7 +445,8 @@ def to_csv(args):
                         jaccard_index,
                         overlap_N,
                         shared_of_a,
-                        shared_of_b
+                        shared_of_b,
+                        overlap_coef
                     ])
 
 
