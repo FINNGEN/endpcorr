@@ -169,8 +169,8 @@ def init(args):
         endpoints = []
         pos_endpoints = set()
         for hh, header in enumerate(headers):
-            has_age = header + "_AGE" in set_headers
-            has_year = header + "_YEAR" in set_headers
+            has_age = header + "_FU_AGE" in set_headers
+            has_year = header + "_APPROX_EVENT_DAY" in set_headers
             has_nevt = header + "_NEVT" in set_headers
             if has_age and has_year and has_nevt:
                 endpoints.append(header)
